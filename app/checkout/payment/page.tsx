@@ -7,6 +7,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Script from 'next/script';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
+import Razorpay from 'razorpay';
 
 import { 
   ChevronRight, 
@@ -34,6 +43,7 @@ interface OrderData {
     billing: any;
   };
   deliveryMethod: any;
+  bookingId: string;
 }
 
 interface PaymentMethod {
@@ -87,6 +97,12 @@ export default function PaymentPage() {
       name: 'Paypal',
       icon: Wallet,
       description: 'Pay with your PayPal account'
+    },
+    {
+      id: 'razorpay',
+      name: 'Razorpay',
+      icon: Wallet,
+      description: 'Pay with Razorpay'
     }
   ];
 
@@ -237,6 +253,61 @@ export default function PaymentPage() {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const makeRazorpayPayment = async () => {
+    if (!orderData) {
+      toast.error('Order details not found.');
+      return;
+    }
+
+    const res = await fetch('/api/payments/order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ amount: orderData.pricing.total }),
+    });
+
+    const order = await res.json();
+
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      name: 'RIMO',
+      currency: order.currency,
+      amount: order.amount,
+      order_id: order.id,
+      description: 'Thank you for your purchase',
+      handler: async function (response: any) {
+        const verifyRes = await fetch('/api/payments/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+            bookingId: orderData.bookingId,
+          }),
+        });
+
+        const result = await verifyRes.json();
+        if (result.success) {
+          alert('Payment successful!');
+        } else {
+          alert('Payment failed. Please try again.');
+        }
+      },
+      prefill: {
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        contact: '9999999999',
+      },
+    };
+
+    const paymentObject = new window.Razorpay(options);
+    paymentObject.open();
   };
 
   // Go back to delivery
@@ -410,6 +481,20 @@ export default function PaymentPage() {
                   <p className="text-gray-600">You will be redirected to PayPal to complete the payment</p>
                 </div>
               )}
+
+              {/* Razorpay Payment */}
+              {selectedPaymentMethod === 'razorpay' && (
+                <div className="text-center py-8">
+                  <Wallet className="h-16 w-16 text-primary-800 mx-auto mb-4" />
+                  <p className="text-gray-600">You will be redirected to Razorpay to complete the payment</p>
+                  <button
+                    onClick={makeRazorpayPayment}
+                    className="w-full bg-red-500 text-white py-3 rounded-md font-medium hover:bg-red-600 transition-colors"
+                  >
+                    Pay Now
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -470,20 +555,22 @@ export default function PaymentPage() {
               </div>
 
               {/* Payment Button */}
-              <button
-                onClick={processPayment}
-                disabled={processing}
-                className="w-full bg-red-500 text-white py-3 rounded-md font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              >
-                {processing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <span>Pay Now</span>
-                )}
-              </button>
+              {selectedPaymentMethod !== 'razorpay' && (
+                <button
+                  onClick={processPayment}
+                  disabled={processing}
+                  className="w-full bg-red-500 text-white py-3 rounded-md font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {processing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <span>Pay Now</span>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -533,16 +620,19 @@ export default function PaymentPage() {
                 </div>
               </div>
               
-              <button
-                onClick={processPayment}
-                disabled={processing}
-                className="w-full bg-primary-800 text-white py-3 rounded-md font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
-              >
-                {processing ? 'Processing...' : 'Confirm and Continue'}
-              </button>
+              {selectedPaymentMethod !== 'razorpay' && (
+                <button
+                  onClick={processPayment}
+                  disabled={processing}
+                  className="w-full bg-primary-800 text-white py-3 rounded-md font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+                >
+                  {processing ? 'Processing...' : 'Confirm and Continue'}
+                </button>
+              )}
             </div>
           )}
         </div>
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       </div>
     </div>
   );
