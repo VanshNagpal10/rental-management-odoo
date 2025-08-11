@@ -7,6 +7,14 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
+import Script from 'next/script';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 import { 
   ChevronRight, 
@@ -25,6 +33,7 @@ interface CheckoutData {
     total: number;
   };
   couponCode: string;
+  bookingId: string;
 }
 
 export default function DeliveryPage() {
@@ -137,6 +146,58 @@ export default function DeliveryPage() {
     return true;
   };
 
+  const handleCheckout = async () => {
+    if (!checkoutData) {
+      toast.error('Order details not loaded yet.');
+      return;
+    }
+
+    try {
+      const selectedMethod = deliveryMethods.find(m => m.id === selectedDeliveryMethod);
+      const updatedPricing = {
+        ...checkoutData.pricing,
+        deliveryCharge: selectedMethod?.price || 0,
+        total: checkoutData.pricing.subtotal - checkoutData.pricing.discount + (selectedMethod?.price || 0) + checkoutData.pricing.tax
+      };
+      
+      const orderData = {
+        ...checkoutData,
+        pricing: updatedPricing,
+        addresses: {
+          delivery: deliveryAddress,
+          billing: sameAsDelivery ? deliveryAddress : billingAddress
+        },
+        deliveryMethod: selectedMethod
+      };
+
+      const orderRes = await axios.post('/api/payments/order', { amount: orderData.pricing.total });
+      const order = orderRes.data;
+      const options: any = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'RIMO',
+        order_id: order.id,
+        handler: async function (response: any) {
+          // verify server-side
+          await axios.post('/api/payments/verify', {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            bookingId: checkoutData.bookingId
+          });
+          window.alert('Payment successful!');
+          window.location.reload();
+        }
+      };
+      // @ts-ignore
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      alert(err.response?.data?.error || err.message);
+    }
+  };
+
   // Proceed to payment
   const proceedToPayment = () => {
     if (!validateForm()) return;
@@ -174,7 +235,8 @@ export default function DeliveryPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-gray-50">
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" />
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-800"></div>
         </div>
@@ -184,7 +246,8 @@ export default function DeliveryPage() {
 
   if (!checkoutData) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-gray-50">
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" />
         <div className="flex items-center justify-center min-h-screen">
           <p className="text-gray-500 text-lg">Checkout data not found</p>
         </div>
@@ -193,7 +256,8 @@ export default function DeliveryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
@@ -500,7 +564,7 @@ export default function DeliveryPage() {
               {/* Action Buttons */}
               <div className="space-y-3">
                 <button
-                  onClick={proceedToPayment}
+                  onClick={handleCheckout}
                   className="w-full bg-red-500 text-white py-3 rounded-md font-medium hover:bg-red-600 transition-colors"
                 >
                   Confirm
