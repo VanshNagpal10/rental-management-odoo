@@ -205,6 +205,22 @@ const productSchema = new mongoose.Schema({
   quantityAvailable: { type: Number, default: 1 }
 }, { timestamps: true });
 
+// RentalOrder Schema (minimal for seeding orders)
+const rentalOrderSchema = new mongoose.Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  endUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  customerName: String,
+  customerEmail: String,
+  startDate: Date,
+  endDate: Date,
+  duration: Number,
+  durationUnit: { type: String, default: 'day' },
+  totalPrice: Number,
+  status: { type: String, default: 'confirmed' },
+  paymentStatus: { type: String, default: 'paid' },
+}, { timestamps: true });
+
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
@@ -215,6 +231,7 @@ userSchema.pre('save', async function(next) {
 // Create models
 const User = mongoose.model('User', userSchema);
 const Product = mongoose.model('Product', productSchema);
+const RentalOrder = mongoose.model('RentalOrder', rentalOrderSchema);
 
 /**
  * Seed the database with sample data
@@ -231,6 +248,7 @@ async function seedDatabase() {
     console.log('🗑️  Clearing existing data...');
     await User.deleteMany({});
     await Product.deleteMany({});
+    await RentalOrder.deleteMany({});
     console.log('✅ Cleared existing data');
 
     // Create users
@@ -259,6 +277,7 @@ async function seedDatabase() {
       'Portable PA System': 'info@adventuregear.com'
     };
 
+    const createdProducts = [];
     for (const productData of sampleProducts) {
       const endUserEmail = productEndUserMap[productData.name];
       const endUser = endUsers.find(user => user.email === endUserEmail);
@@ -269,8 +288,38 @@ async function seedDatabase() {
           endUserId: endUser._id
         });
         await product.save();
+        createdProducts.push({ product, endUser });
         console.log(`   ✅ Created product: ${productData.name} for ${endUser.companyName}`);
       }
+    }
+
+    // Create sample rental orders to power dashboard/customer pages
+    console.log('🧾 Creating sample rental orders...');
+    const customers = createdUsers.filter(u => u.role === 'customer');
+    const ordersToCreate = [];
+    for (let i = 0; i < Math.min(12, createdProducts.length); i++) {
+      const { product, endUser } = createdProducts[i];
+      const customer = customers[i % customers.length];
+      const startDate = new Date();
+      const endDate = new Date(Date.now() + (i % 5 + 1) * 24 * 60 * 60 * 1000);
+      ordersToCreate.push({
+        productId: product._id,
+        customerId: customer._id,
+        endUserId: endUser._id,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        startDate,
+        endDate,
+        duration: (i % 5) + 1,
+        durationUnit: 'day',
+        totalPrice: product.pricePerDay * ((i % 5) + 1),
+        status: i % 4 === 0 ? 'returned' : 'confirmed',
+        paymentStatus: 'paid',
+      });
+    }
+    if (ordersToCreate.length) {
+      await RentalOrder.insertMany(ordersToCreate);
+      console.log(`   ✅ Created ${ordersToCreate.length} rental orders`);
     }
 
     console.log('\n🎉 Database seeding completed successfully!');

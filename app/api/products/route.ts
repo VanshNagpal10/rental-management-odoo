@@ -38,14 +38,13 @@ export async function GET(request: NextRequest) {
     // For business owners requesting their products
     if (myProducts === 'true' && session?.user?.role === 'enduser') {
       query.endUserId = session.user.id;
-    } else if (session?.user?.role === 'customer' || !session) {
-      // For customers or unauthenticated users, only show available products
-      query.availability = true;
     }
 
-    // Filter by availability (unless business owner viewing their own products)
-    if (available !== 'false' && myProducts !== 'true') {
+    // Availability filter is optional now; when omitted, show all (including unavailable)
+    if (available === 'true') {
       query.availability = true;
+    } else if (available === 'false') {
+      query.availability = false;
     }
 
     // Filter by category

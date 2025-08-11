@@ -97,10 +97,11 @@ export default function WishlistPage() {
           pricePerDay: product.pricePerDay,
           quantity: 1,
           duration: 'day',
-          fromDate: '',
-          toDate: '',
+          fromDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          toDate: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
           pricePerUnit: product.pricePerDay,
-          totalPrice: product.pricePerDay
+          totalPrice: product.pricePerDay,
+          endUserId: product.endUserId?.toString() // Include endUserId for order tracking
         });
       }
       

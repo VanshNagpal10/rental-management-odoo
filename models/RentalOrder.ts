@@ -94,7 +94,13 @@ const RentalOrderSchema: Schema<IRentalOrder> = new Schema(
     customerPhone: {
       type: String,
       trim: true,
-      match: [/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number'],
+      validate: {
+        validator: function(v: string) {
+          // Only validate if phone is provided
+          return !v || /^[\+]?[1-9][\d]{0,15}$/.test(v);
+        },
+        message: 'Please enter a valid phone number',
+      },
     },
     startDate: {
       type: Date,

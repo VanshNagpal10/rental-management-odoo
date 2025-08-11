@@ -207,10 +207,28 @@ export default function DeliveryPage() {
 
             try {
               localStorage.setItem('orderData', JSON.stringify(completeOrderData));
+              // Consume inventory on server
+              await axios.post('/api/orders/complete', {
+                customer: { name: session?.user?.name, email: session?.user?.email },
+                items: (checkoutData.items || []).map((it: any) => ({
+                  productId: it.productId,
+                  quantity: it.quantity || 1,
+                  startDate: it.fromDate,
+                  endDate: it.toDate,
+                  durationUnit: it.duration,
+                  pricePerUnit: it.pricePerUnit,
+                  totalPrice: it.totalPrice,
+                  endUserId: it?.endUserId,
+                  deliveryAddress: deliveryAddress,
+                })),
+              });
               localStorage.removeItem('cart');
               localStorage.removeItem('checkoutData');
               window.dispatchEvent(new Event('cartUpdated'));
-            } catch {}
+            } catch (error) {
+              console.error('Error calling /api/orders/complete:', error);
+              // Don't fail the checkout if inventory update fails, but log it
+            }
             toast.success('Payment successful!');
             router.push('/orders/success');
           } else {

@@ -41,14 +41,12 @@ export default function ShopPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/products');
+      const response = await fetch('/api/products?available=all');
       const data = await response.json();
       
       if (data.success) {
-        // Only show available products
-        const availableProducts = data.data.filter((product: IProduct) => product.availability);
-        setProducts(availableProducts);
-        setFilteredProducts(availableProducts);
+        setProducts(data.data);
+        setFilteredProducts(data.data);
       } else {
         toast.error('Failed to load products');
       }
@@ -121,9 +119,10 @@ export default function ShopPage() {
           quantity: 1,
           duration: 'day',
           totalPrice: pricePerDay,
-          // Set default dates (today + 1 day)
-          fromDate: new Date().toISOString().split('T')[0],
-          toDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          // Set default dates (tomorrow + 1 day to avoid timezone/validation issues)
+          fromDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          toDate: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
+          endUserId: product.endUserId?.toString() // Include endUserId for order tracking
         });
       }
       
@@ -175,6 +174,11 @@ export default function ShopPage() {
             fill
             className="object-cover"
           />
+          {!product.availability && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <span className="text-white text-xs px-2 py-1 rounded bg-black/60">Unavailable</span>
+            </div>
+          )}
           <button
             onClick={() => addToWishlist(product._id!.toString())}
             className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
@@ -214,6 +218,7 @@ export default function ShopPage() {
                   // Prevent parent Link navigation when clicking Add to Cart inside card
                   e.preventDefault();
                   e.stopPropagation();
+                  if (!product.availability) { toast.error('This item is currently unavailable'); return; }
                   addToCart(product);
                   // After adding one unit from the catalog, navigate to Review Order
                   try { window.dispatchEvent(new Event('cartUpdated')); } catch {}

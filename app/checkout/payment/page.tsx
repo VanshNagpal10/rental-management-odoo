@@ -235,6 +235,31 @@ export default function PaymentPage() {
       };
       
       localStorage.setItem('orderData', JSON.stringify(completeOrderData));
+      // Consume inventory and create orders on server so stock/availability updates and dashboards populate
+      try {
+        const resp = await fetch('/api/orders/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer: { name: session?.user?.name, email: session?.user?.email },
+            items: (orderData.items || []).map((it: any) => ({
+              productId: it.productId,
+              quantity: it.quantity || 1,
+              startDate: it.fromDate,
+              endDate: it.toDate,
+              durationUnit: it.duration,
+              pricePerUnit: it.pricePerUnit,
+              totalPrice: it.totalPrice,
+              endUserId: it?.endUserId,
+              deliveryAddress: orderData?.addresses?.delivery,
+            })),
+          }),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(()=>({error:'Inventory error'}));
+          toast.error(err.error || 'Inventory update failed');
+        }
+      } catch {}
       
       // Clear cart and checkout data
       localStorage.removeItem('cart');
@@ -311,6 +336,32 @@ export default function PaymentPage() {
 
           try {
             localStorage.setItem('orderData', JSON.stringify(completeOrderData));
+            // Consume inventory and create orders (same as card flow)
+            try {
+              const resp = await fetch('/api/orders/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  customer: { name: session?.user?.name, email: session?.user?.email },
+                  items: (orderData.items || []).map((it: any) => ({
+                    productId: it.productId,
+                    quantity: it.quantity || 1,
+                    startDate: it.fromDate,
+                    endDate: it.toDate,
+                    durationUnit: it.duration,
+                    pricePerUnit: it.pricePerUnit,
+                    totalPrice: it.totalPrice,
+                    endUserId: it?.endUserId,
+                    deliveryAddress: orderData?.addresses?.delivery,
+                  })),
+                }),
+              });
+              if (!resp.ok) {
+                // Surface inventory issues to the user
+                const err = await resp.json().catch(()=>({error:'Inventory error'}));
+                toast.error(err.error || 'Inventory update failed');
+              }
+            } catch {}
             localStorage.removeItem('cart');
             localStorage.removeItem('checkoutData');
             window.dispatchEvent(new Event('cartUpdated'));

@@ -136,7 +136,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         fromDate,
         toDate,
         pricePerUnit: product[`pricePer${selectedDuration.charAt(0).toUpperCase() + selectedDuration.slice(1)}` as keyof IProduct] as number,
-        totalPrice
+        totalPrice,
+        endUserId: product.endUserId?.toString() // Include endUserId for order tracking
       };
       
       cart.push(cartItem);

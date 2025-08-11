@@ -22,6 +22,7 @@ import {
   IndianRupee
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import toast from 'react-hot-toast';
 
 /**
  * Dashboard Main Page Component
@@ -31,22 +32,12 @@ export default function EndUserDashboard() {
   const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState('Last 30 days');
   const [dashboardData, setDashboardData] = useState({
-    quotations: 10,
-    rentals: 26,
-    revenue: 10599,
-    topCategories: [
-      { category: 'Rental - Service', ordered: 25, revenue: 2940 }
-    ],
-    topProducts: [
-      { product: 'Playstation 5', ordered: 10, revenue: 3032 },
-      { product: 'Canon EOS R6 Camera', ordered: 5, revenue: 1009 },
-      { product: 'Camping Tent (4 Person)', ordered: 4, revenue: 3009 }
-    ],
-    topCustomers: [
-      { customer: 'Customer1', ordered: 10, revenue: 3032 },
-      { customer: 'Customer2', ordered: 5, revenue: 1009 },
-      { customer: 'Customer3', ordered: 4, revenue: 3009 }
-    ]
+    quotations: 0,
+    rentals: 0,
+    revenue: 0,
+    topCategories: [] as Array<{ category: string; ordered: number; revenue: number }>,
+    topProducts: [] as Array<{ product: string; ordered: number; revenue: number }>,
+    topCustomers: [] as Array<{ customer: string; ordered: number; revenue: number }>,
   });
 
   // Redirect non-end users
@@ -62,7 +53,24 @@ export default function EndUserDashboard() {
       router.push('/');
       return;
     }
-  }, [session, status, router]);
+    // Fetch live stats for enduser
+    const load = async () => {
+      try {
+        const periodMap: any = { 'Last 7 days': 7, 'Last 30 days': 30, 'Last 90 days': 90, 'Last 6 months': 180, 'Last year': 365 };
+        const days = periodMap[selectedPeriod] || 30;
+        const res = await fetch(`/api/enduser/stats?period=${days}`);
+        const json = await res.json();
+        if (json?.success) {
+          setDashboardData(json.data);
+        } else {
+          toast.error('Failed to load dashboard');
+        }
+      } catch (e) {
+        toast.error('Failed to load dashboard');
+      }
+    };
+    load();
+  }, [session, status, router, selectedPeriod]);
 
   // Period options for dropdown
   const periodOptions = [

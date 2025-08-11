@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import {
   Search,
@@ -44,73 +45,46 @@ export default function EndUserOrders() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 16;
 
-  // Mock data based on wireframes
-  const [orders] = useState<RentalOrder[]>([
-    {
-      id: 'R0001',
-      customer: 'Customer1',
-      amount: 2000,
-      status: 'quotation',
-      invoiceStatus: 'nothing_to_invoice',
-      orderDate: '2024-01-15',
-      orderReference: 'R0001',
-      createdBy: 'Adam'
-    },
-    {
-      id: 'R0002',
-      customer: 'Customer2',
-      amount: 1000,
-      status: 'quotation_sent',
-      invoiceStatus: 'to_invoice',
-      orderDate: '2024-01-14',
-      pickupDate: '04/03/2025 00:30:36',
-      orderReference: 'R0002',
-      createdBy: 'Adam'
-    },
-    {
-      id: 'R0003',
-      customer: 'Customer3',
-      amount: 3000,
-      status: 'returned',
-      invoiceStatus: 'fully_invoiced',
-      orderDate: '2024-01-13',
-      pickupDate: '04/03/2025',
-      returnDate: '10:30:36',
-      orderReference: 'R0003',
-      createdBy: 'Adam'
-    },
-    {
-      id: 'R0004',
-      customer: 'Customer4',
-      amount: 2000,
-      status: 'reserved',
-      invoiceStatus: 'nothing_to_invoice',
-      orderDate: '2024-01-12',
-      orderReference: 'R0004',
-      createdBy: 'Adam'
-    },
-    {
-      id: 'R0005',
-      customer: 'Customer5',
-      amount: 1000,
-      status: 'pickedup',
-      invoiceStatus: 'to_invoice',
-      orderDate: '2024-01-11',
-      pickupDate: '04/03/2025 00:30:36',
-      orderReference: 'R0005',
-      createdBy: 'Adam'
-    },
-    {
-      id: 'R0006',
-      customer: 'Customer6',
-      amount: 3000,
-      status: 'reserved',
-      invoiceStatus: 'fully_invoiced',
-      orderDate: '2024-01-10',
-      orderReference: 'R0006',
-      createdBy: 'Adam'
-    },
-  ]);
+  const [orders, setOrders] = useState<RentalOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        params.set('page', String(currentPage));
+        params.set('limit', String(itemsPerPage));
+        if (selectedStatus !== 'ALL') params.set('status', selectedStatus);
+        if (searchTerm) params.set('q', searchTerm);
+        const res = await fetch(`/api/enduser/orders?${params.toString()}`);
+        const json = await res.json();
+        if (json?.success) {
+          const apiOrders = (json.data.orders || []).map((o: any) => ({
+            id: o._id,
+            customer: o.customerName,
+            amount: o.totalPrice,
+            status: (o.status === 'delivered' ? 'pickedup' : o.status) as any,
+            invoiceStatus: 'to_invoice',
+            orderDate: new Date(o.createdAt).toISOString().slice(0,10),
+            pickupDate: o.pickupDate ? new Date(o.pickupDate).toLocaleDateString() : undefined,
+            returnDate: o.returnDate ? new Date(o.returnDate).toLocaleDateString() : undefined,
+            orderReference: o._id,
+            createdBy: o.endUserId?.name || '—',
+          }));
+          setOrders(apiOrders);
+        } else {
+          toast.error('Failed to load orders');
+        }
+      } catch (e) {
+        toast.error('Failed to load orders');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, itemsPerPage, selectedStatus, searchTerm]);
 
   // Status counts
   const statusCounts = {
@@ -136,11 +110,8 @@ export default function EndUserOrders() {
   });
 
   // Pagination
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const getStatusBadge = (status: string) => {
     const styles = {

@@ -28,6 +28,8 @@ interface CartItem {
   toDate: string;
   pricePerUnit: number;
   totalPrice: number;
+  endUserId?: string; // Include endUserId for order tracking
+  pricePerDay?: number; // For backward compatibility with older cart items
 }
 
 export default function CartPage() {

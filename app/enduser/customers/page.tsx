@@ -5,7 +5,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import {
   Search,
@@ -41,45 +42,36 @@ export default function EndUserCustomers() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Mock customers data
-  const [customers] = useState<Customer[]>([
-    {
-      id: 'C001',
-      name: 'Customer1',
-      email: 'customer1@example.com',
-      phone: '+1 234-567-8901',
-      address: '123 Main Street, City, State 12345',
-      joinDate: '2024-01-01',
-      totalOrders: 10,
-      totalSpent: 3032,
-      status: 'active',
-      lastOrder: '2024-01-15'
-    },
-    {
-      id: 'C002',
-      name: 'Customer2',
-      email: 'customer2@example.com',
-      phone: '+1 234-567-8902',
-      address: '456 Oak Avenue, City, State 12345',
-      joinDate: '2024-01-02',
-      totalOrders: 5,
-      totalSpent: 1009,
-      status: 'active',
-      lastOrder: '2024-01-14'
-    },
-    {
-      id: 'C003',
-      name: 'Customer3',
-      email: 'customer3@example.com',
-      phone: '+1 234-567-8903',
-      address: '789 Pine Road, City, State 12345',
-      joinDate: '2024-01-03',
-      totalOrders: 4,
-      totalSpent: 3009,
-      status: 'active',
-      lastOrder: '2024-01-13'
-    }
-  ]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/enduser/customers');
+        const json = await res.json();
+        if (json?.success) {
+          const mapped: Customer[] = (json.data || []).map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            email: c.email,
+            phone: c.phone || '',
+            address: c.address || '',
+            joinDate: c.joinDate || new Date().toISOString(),
+            totalOrders: c.totalOrders || 0,
+            totalSpent: c.totalSpent || 0,
+            status: 'active',
+            lastOrder: c.lastOrder || c.joinDate,
+          }));
+          setCustomers(mapped);
+        } else {
+          toast.error('Failed to load customers');
+        }
+      } catch (e) {
+        toast.error('Failed to load customers');
+      }
+    };
+    load();
+  }, []);
 
   // Filter customers
   const filteredCustomers = customers.filter(customer =>
