@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import div className="min-h-screen bg-white" from '@/components/customer/div className="min-h-screen bg-white"';
+
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -204,10 +204,24 @@ export default function PaymentPage() {
         status: 'confirmed'
       };
       
+      // Save order data for invoice generation
+      const completeOrderData = {
+        orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
+        orderDate: new Date().toLocaleDateString(),
+        customerPhone: orderData.addresses?.delivery?.phone || '',
+        deliveryAddress: orderData.addresses?.delivery || {},
+        billingAddress: orderData.addresses?.billing || orderData.addresses?.delivery || {},
+        items: orderData.items || [],
+        pricing: orderData.pricing || {},
+        paymentMethod: selectedPaymentMethod,
+        deliveryMethod: orderData.deliveryMethod || 'Standard Delivery'
+      };
+      
+      localStorage.setItem('orderData', JSON.stringify(completeOrderData));
+      
       // Clear cart and checkout data
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutData');
-      localStorage.removeItem('orderData');
       
       toast.success('Payment successful! Order confirmed');
       router.push('/orders/success');

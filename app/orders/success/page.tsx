@@ -4,16 +4,43 @@
  */
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import div className="min-h-screen bg-white" from '@/components/customer/div className="min-h-screen bg-white"';
+
 import { CheckCircle, Download, Eye } from 'lucide-react';
+import { generateInvoicePDF, InvoiceData } from '@/lib/pdfGenerator';
+import { generateSimpleInvoicePDF } from '@/lib/simplePdfGenerator';
+import toast from 'react-hot-toast';
 
 export default function OrderSuccessPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [orderData, setOrderData] = useState<any>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  // Load order data from localStorage (saved during checkout)
+  useEffect(() => {
+    try {
+      const savedOrderData = localStorage.getItem('orderData');
+      const savedCheckoutData = localStorage.getItem('checkoutData');
+      
+      if (savedOrderData) {
+        setOrderData(JSON.parse(savedOrderData));
+      } else if (savedCheckoutData) {
+        // Fallback to checkout data if order data not found
+        const checkoutData = JSON.parse(savedCheckoutData);
+        setOrderData({
+          orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
+          orderDate: new Date().toLocaleDateString(),
+          ...checkoutData
+        });
+      }
+    } catch (error) {
+      console.error('Error loading order data:', error);
+    }
+  }, []);
 
   // Redirect if not customer
   useEffect(() => {
@@ -22,6 +49,67 @@ export default function OrderSuccessPage() {
       router.push('/login');
     }
   }, [session, status, router]);
+
+  // Generate and download PDF invoice
+  const handleDownloadInvoice = async () => {
+    if (!orderData) {
+      toast.error('Order data not found');
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+    
+    try {
+      console.log('Order data:', orderData);
+      console.log('Session:', session);
+      
+      // Prepare invoice data
+      const invoiceData: InvoiceData = {
+        orderNumber: orderData.orderNumber || `ORD-${Date.now().toString().slice(-6)}`,
+        orderDate: orderData.orderDate || new Date().toLocaleDateString(),
+        customerName: session?.user?.name || 'Customer',
+        customerEmail: session?.user?.email || '',
+        customerPhone: orderData.customerPhone || '',
+        deliveryAddress: orderData.deliveryAddress || {
+          street: orderData.address || '123 Main Street',
+          city: orderData.city || 'City',
+          state: orderData.state || 'State',
+          zipCode: orderData.zipCode || '12345',
+          country: orderData.country || 'India',
+          landmark: orderData.landmark
+        },
+        billingAddress: orderData.billingAddress,
+        items: orderData.items || [],
+        pricing: orderData.pricing || {
+          subtotal: 0,
+          discount: 0,
+          discountAmount: 0,
+          deliveryCharge: 0,
+          tax: 0,
+          total: 0
+        },
+        paymentMethod: orderData.paymentMethod || 'Credit Card',
+        deliveryMethod: orderData.deliveryMethod || 'Standard Delivery'
+      };
+
+      // Try to generate complex PDF first
+      try {
+        await generateInvoicePDF(invoiceData);
+        toast.success('Invoice downloaded successfully!');
+      } catch (pdfError) {
+        console.warn('Complex PDF failed, trying simple version:', pdfError);
+        // Fallback to simple PDF
+        await generateSimpleInvoicePDF(orderData, session);
+        toast.success('Invoice downloaded successfully (simple format)!');
+      }
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate invoice. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   if (status === 'loading') {
     return (
@@ -73,9 +161,13 @@ export default function OrderSuccessPage() {
               <span>View Order</span>
             </button>
             
-            <button className="flex items-center justify-center space-x-2 border border-primary-800 text-primary-800 px-6 py-3 rounded-md font-medium hover:bg-primary-50 transition-colors">
-              <Download className="h-4 w-4" />
-              <span>Download Invoice</span>
+            <button 
+              onClick={handleDownloadInvoice}
+              disabled={isGeneratingPDF}
+              className="flex items-center justify-center space-x-2 border border-primary-800 text-primary-800 px-6 py-3 rounded-md font-medium hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className={`h-4 w-4 ${isGeneratingPDF ? 'animate-spin' : ''}`} />
+              <span>{isGeneratingPDF ? 'Generating...' : 'Download Invoice'}</span>
             </button>
           </div>
 
