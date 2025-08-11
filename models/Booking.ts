@@ -179,9 +179,10 @@ BookingSchema.virtual('isLate').get(function () {
 
 // Virtual field to calculate late fees
 BookingSchema.virtual('lateFee').get(function () {
-  if (!this.isLate) return 0;
-  
   const now = new Date();
+  const isLate = this.status === 'confirmed' && this.endDate < now;
+  if (!isLate) return 0;
+  
   const daysLate = Math.ceil((now.getTime() - this.endDate.getTime()) / (1000 * 60 * 60 * 24));
   const feePerDay = 50; // ₹50 per day late fee
   
@@ -190,7 +191,17 @@ BookingSchema.virtual('lateFee').get(function () {
 
 // Virtual field to get total amount including late fees
 BookingSchema.virtual('totalAmountDue').get(function () {
-  return this.totalPrice + this.lateFee;
+  const now = new Date();
+  const isLate = this.status === 'confirmed' && this.endDate < now;
+  let lateFee = 0;
+  
+  if (isLate) {
+    const daysLate = Math.ceil((now.getTime() - this.endDate.getTime()) / (1000 * 60 * 60 * 24));
+    const feePerDay = 50; // ₹50 per day late fee
+    lateFee = daysLate * feePerDay;
+  }
+  
+  return this.totalPrice + lateFee;
 });
 
 // Virtual field to get days until return

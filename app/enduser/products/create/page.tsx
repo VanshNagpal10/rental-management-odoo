@@ -95,7 +95,7 @@ export default function CreateProduct() {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof ProductFormData],
+          ...(prev[parent as keyof ProductFormData] as any),
           [child]: value
         }
       }));

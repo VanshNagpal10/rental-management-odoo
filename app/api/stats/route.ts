@@ -19,7 +19,7 @@ import { ApiResponse, DashboardStats } from '@/types';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user || session.user.role !== 'admin') {
+    if (!session?.user || session.user.role !== 'enduser') {
       logger.warn('Unauthorized stats access attempt', {
         user: session?.user?.email || 'unknown'
       });
@@ -221,7 +221,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user || session.user.role !== 'admin') {
+    if (!session?.user || session.user.role !== 'enduser') {
       const response: ApiResponse = {
         success: false,
         error: 'Unauthorized. Admin access required.',

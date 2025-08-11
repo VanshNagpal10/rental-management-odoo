@@ -9,8 +9,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import CustomerLayout from '@/components/customer/CustomerLayout';
-import { Heart, ShoppingCart, Star, Filter } from 'lucide-react';
+import { Heart, ShoppingCart, Star, Filter, Grid3X3, List, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { IProduct } from '@/types';
 
@@ -105,21 +104,34 @@ export default function ShopPage() {
     try {
       // For now, we'll use localStorage for cart
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const existingItem = cart.find((item: any) => item.productId === product._id);
+      const existingItem = cart.find((item: any) => item.productId === product._id?.toString());
       
       if (existingItem) {
         existingItem.quantity += 1;
+        // Recalculate total price for existing item
+        existingItem.totalPrice = (existingItem.pricePerDay || 0) * existingItem.quantity;
       } else {
+        // Default to daily rental with basic information
+        const pricePerDay = product.pricePerDay || product.pricePerHour || 0;
         cart.push({
-          productId: product._id,
+          productId: product._id?.toString(),
           name: product.name,
           image: product.image,
-          pricePerDay: product.pricePerDay,
-          quantity: 1
+          pricePerDay: pricePerDay,
+          quantity: 1,
+          duration: 'day',
+          totalPrice: pricePerDay,
+          // Set default dates (today + 1 day)
+          fromDate: new Date().toISOString().split('T')[0],
+          toDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         });
       }
       
       localStorage.setItem('cart', JSON.stringify(cart));
+      
+      // Dispatch custom event to update cart count in navbar
+      window.dispatchEvent(new Event('cartUpdated'));
+      
       toast.success('Added to cart');
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -137,7 +149,7 @@ export default function ShopPage() {
         localStorage.setItem('wishlist', JSON.stringify(wishlist));
         toast.success('Added to wishlist');
       } else {
-        toast.info('Already in wishlist');
+        toast('Already in wishlist');
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error);
@@ -164,7 +176,7 @@ export default function ShopPage() {
             className="object-cover"
           />
           <button
-            onClick={() => addToWishlist(product._id!)}
+            onClick={() => addToWishlist(product._id!.toString())}
             className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
           >
             <Heart className="h-4 w-4 text-gray-600" />
@@ -219,22 +231,148 @@ export default function ShopPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <CustomerLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-800"></div>
-        </div>
-      </CustomerLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-800"></div>
+      </div>
     );
   }
 
   return (
-    <CustomerLayout
-      title="Rental Shop"
-      showSearch={true}
-      showViewToggle={true}
-      onViewChange={setViewMode}
-      currentView={viewMode}
-    >
+    <div className="min-h-screen bg-white">
+      {/* Page Header with Search and Filters */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Page Title */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Rental Shop</h1>
+            <p className="text-gray-600 mt-2">Find the perfect items for your rental needs</p>
+          </div>
+
+          {/* Search and Filters Bar */}
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            {/* Categories */}
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 border rounded-full text-sm transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-primary-600 text-white border-primary-600'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            {/* Search and Controls */}
+            <div className="flex items-center space-x-4">
+              {/* Price Filter */}
+              <select 
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === 'low-high') {
+                    // Sort by price low to high
+                    const sorted = [...filteredProducts].sort((a, b) => {
+                      const priceA = a.pricePerDay || a.pricePerHour || 0;
+                      const priceB = b.pricePerDay || b.pricePerHour || 0;
+                      return priceA - priceB;
+                    });
+                    setFilteredProducts(sorted);
+                  } else if (value === 'high-low') {
+                    // Sort by price high to low
+                    const sorted = [...filteredProducts].sort((a, b) => {
+                      const priceA = a.pricePerDay || a.pricePerHour || 0;
+                      const priceB = b.pricePerDay || b.pricePerHour || 0;
+                      return priceB - priceA;
+                    });
+                    setFilteredProducts(sorted);
+                  }
+                }}
+              >
+                <option value="">Price List</option>
+                <option value="low-high">Low to High</option>
+                <option value="high-low">High to Low</option>
+              </select>
+
+              {/* Search */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  value={searchParams.get('search') || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const url = new URL(window.location.href);
+                    if (value) {
+                      url.searchParams.set('search', value);
+                    } else {
+                      url.searchParams.delete('search');
+                    }
+                    window.history.replaceState({}, '', url.toString());
+                    // Filter products based on search
+                    if (value) {
+                      const filtered = products.filter(product => 
+                        product.name.toLowerCase().includes(value.toLowerCase()) ||
+                        product.description?.toLowerCase().includes(value.toLowerCase())
+                      );
+                      setFilteredProducts(filtered);
+                    } else {
+                      setFilteredProducts(products);
+                    }
+                  }}
+                />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              </div>
+
+              {/* Sort */}
+              <select 
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  let sorted = [...filteredProducts];
+                  if (value === 'name-asc') {
+                    sorted.sort((a, b) => a.name.localeCompare(b.name));
+                  } else if (value === 'name-desc') {
+                    sorted.sort((a, b) => b.name.localeCompare(a.name));
+                  }
+                  setFilteredProducts(sorted);
+                }}
+              >
+                <option value="">Sort by</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+              </select>
+
+              {/* View Toggle */}
+              <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 ${viewMode === 'grid' 
+                    ? 'bg-primary-600 text-white' 
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                  } transition-colors`}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 ${viewMode === 'list' 
+                    ? 'bg-primary-600 text-white' 
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                  } transition-colors`}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar Filters - Desktop */}
@@ -366,7 +504,7 @@ export default function ShopPage() {
                     : 'space-y-4'
                 }`}>
                   {filteredProducts.map((product) => (
-                    <Link key={product._id} href={`/shop/product/${product._id}`}>
+                    <Link key={product._id!.toString()} href={`/shop/product/${product._id}`}>
                       <ProductCard product={product} />
                     </Link>
                   ))}
@@ -402,6 +540,6 @@ export default function ShopPage() {
           </div>
         </div>
       </div>
-    </CustomerLayout>
+    </div>
   );
 }

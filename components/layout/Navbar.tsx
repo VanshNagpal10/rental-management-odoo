@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
@@ -21,7 +21,10 @@ import {
   Calendar, 
   BarChart3,
   Shield,
-  Truck
+  Truck,
+  ShoppingCart,
+  Heart,
+  Phone
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
@@ -33,6 +36,34 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+
+  // Update cart count from localStorage
+  useEffect(() => {
+    const updateCartCount = () => {
+      try {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const totalItems = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+        setCartCount(totalItems);
+      } catch (error) {
+        setCartCount(0);
+      }
+    };
+
+    // Initial load
+    updateCartCount();
+
+    // Listen for storage changes
+    window.addEventListener('storage', updateCartCount);
+    
+    // Listen for custom cart update events
+    window.addEventListener('cartUpdated', updateCartCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
+  }, []);
 
   // Navigation items based on user role
   const getNavigationItems = () => {
@@ -45,11 +76,17 @@ export default function Navbar() {
         { name: 'Transfer', href: '/enduser/transfer', icon: Truck },
         { name: 'Customers', href: '/enduser/customers', icon: User },
       ];
-    } else {
+    } else if (session?.user?.role === 'customer') {
       // Customer navigation
       return [
         { name: 'Home', href: '/', icon: Home },
-        { name: 'My Rentals', href: '/my-rentals', icon: Calendar },
+        { name: 'Rental Shop', href: '/shop', icon: Package },
+        { name: 'Wishlist', href: '/wishlist', icon: User },
+      ];
+    } else {
+      // Unauthenticated navigation
+      return [
+        { name: 'Home', href: '/', icon: Home },
       ];
     }
   };
@@ -115,6 +152,33 @@ export default function Navbar() {
 
           {/* User menu and mobile menu button */}
           <div className="flex items-center space-x-4">
+            {/* Customer-specific actions */}
+            {session?.user?.role === 'customer' && (
+              <>
+                {/* Cart */}
+                <Link 
+                  href="/cart"
+                  className="relative p-2 text-gray-600 hover:text-primary-700 transition-colors"
+                >
+                  <ShoppingCart className="w-6 h-6" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+
+                {/* Contact Us */}
+                <Link 
+                  href="/contact"
+                  className="hidden md:flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700 transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>Contact us</span>
+                </Link>
+              </>
+            )}
+
             {/* User role badge */}
             {session?.user?.role === 'enduser' && (
               <div className="hidden sm:flex items-center">
@@ -276,3 +340,4 @@ export default function Navbar() {
     </nav>
   );
 }
+

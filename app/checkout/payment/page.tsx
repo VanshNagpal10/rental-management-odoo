@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import CustomerLayout from '@/components/customer/CustomerLayout';
+import div className="min-h-screen bg-white" from '@/components/customer/div className="min-h-screen bg-white"';
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -226,26 +226,26 @@ export default function PaymentPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <CustomerLayout>
+      <div className="min-h-screen bg-white">
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-800"></div>
         </div>
-      </CustomerLayout>
+      </div>
     );
   }
 
   if (!orderData) {
     return (
-      <CustomerLayout>
+      <div className="min-h-screen bg-white">
         <div className="flex items-center justify-center min-h-screen">
           <p className="text-gray-500 text-lg">Order data not found</p>
         </div>
-      </CustomerLayout>
+      </div>
     );
   }
 
   return (
-    <CustomerLayout title="Payment">
+    <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
@@ -524,6 +524,6 @@ export default function PaymentPage() {
           )}
         </div>
       </div>
-    </CustomerLayout>
+    </div>
   );
 }

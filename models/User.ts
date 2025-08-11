@@ -58,7 +58,7 @@ const UserSchema: Schema<IUser> = new Schema(
         validator: function(v: string) {
           // If role is enduser, company name is required
           if ((this as any).role === 'enduser') {
-            return v && v.length > 0;
+            return !!(v && v.length > 0);
           }
           return true;
         },
@@ -86,7 +86,7 @@ const UserSchema: Schema<IUser> = new Schema(
         validator: function(v: string) {
           // If role is enduser, business type is required
           if ((this as any).role === 'enduser') {
-            return v && v.length > 0;
+            return !!(v && v.length > 0);
           }
           return true;
         },
@@ -99,7 +99,7 @@ const UserSchema: Schema<IUser> = new Schema(
     toJSON: {
       transform: function (doc, ret) {
         // Remove password from JSON output for security
-        delete ret.password;
+        delete (ret as any).password;
         return ret;
       },
     },

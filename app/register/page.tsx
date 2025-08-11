@@ -23,7 +23,7 @@ import {
   CheckCircle,
   Briefcase
 } from 'lucide-react';
-import { useToast } from '@/components/providers/ToastProvider';
+import toast from 'react-hot-toast';
 import { logger } from '@/lib/logger';
 import { getSession } from 'next-auth/react';
 
@@ -32,7 +32,7 @@ import { getSession } from 'next-auth/react';
  */
 export default function RegisterPage() {
   const router = useRouter();
-  const { showToast } = useToast();
+
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -195,14 +195,14 @@ export default function RegisterPage() {
       const result = await response.json();
 
       if (response.ok) {
-        showToast('success', 'Registration Successful', 'Your account has been created. Please sign in.');
+        toast.success('Your account has been created. Please sign in.');
         logger.auth('Registration successful', formData.email, { role: selectedRole });
         router.push('/login');
       } else {
         setErrors({
           general: result.error || 'Registration failed. Please try again.',
         });
-        showToast('error', 'Registration Failed', result.error || 'Please try again');
+        toast.error(result.error || 'Registration failed. Please try again.');
         logger.auth('Registration failed', formData.email, { error: result.error });
       }
     } catch (error) {
@@ -210,7 +210,7 @@ export default function RegisterPage() {
       setErrors({
         general: 'Something went wrong. Please try again.',
       });
-      showToast('error', 'Registration Error', 'Something went wrong. Please try again.');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }

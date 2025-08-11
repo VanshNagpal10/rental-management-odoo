@@ -20,7 +20,7 @@ import {
   User,
   Building2
 } from 'lucide-react';
-import { useToast } from '@/components/providers/ToastProvider';
+import toast from 'react-hot-toast';
 import { logger } from '@/lib/logger';
 
 /**
@@ -28,7 +28,7 @@ import { logger } from '@/lib/logger';
  */
 export default function LoginPage() {
   const router = useRouter();
-  const { showToast } = useToast();
+
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'customer' | 'enduser'>('customer');
@@ -121,14 +121,14 @@ export default function LoginPage() {
         setErrors({
           general: 'Invalid email or password. Please try again.',
         });
-        showToast('error', 'Login Failed', 'Invalid email or password');
+        toast.error('Invalid email or password');
         logger.auth('Login failed', formData.email, { error: result.error });
       } else {
         // Get updated session to check user role
         const session = await getSession();
         
         if (session?.user) {
-          showToast('success', 'Login Successful', `Welcome back, ${session.user.name}!`);
+          toast.success(`Welcome back, ${session.user.name}!`);
           
           // Redirect based on user role
           if (session.user.role === 'enduser') {
@@ -143,7 +143,7 @@ export default function LoginPage() {
       setErrors({
         general: 'Something went wrong. Please try again.',
       });
-      showToast('error', 'Login Error', 'Something went wrong. Please try again.');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }

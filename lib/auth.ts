@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
           await connectDB();
 
           // Find user by email
-          const user = await User.findByEmail(credentials.email);
+          const user = await User.findOne({ email: credentials.email });
           if (!user) {
             logger.auth('User not found', credentials.email);
             return null;

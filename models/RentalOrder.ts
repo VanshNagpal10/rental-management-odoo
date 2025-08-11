@@ -271,9 +271,10 @@ RentalOrderSchema.virtual('isLate').get(function () {
 
 // Virtual field to calculate late fees
 RentalOrderSchema.virtual('calculatedLateFee').get(function () {
-  if (!this.isLate) return 0;
-  
   const now = new Date();
+  const isLate = this.status === 'delivered' && this.endDate < now;
+  if (!isLate) return 0;
+  
   const daysLate = Math.ceil((now.getTime() - this.endDate.getTime()) / (1000 * 60 * 60 * 24));
   const feePerDay = 100; // ₹100 per day late fee
   
@@ -282,7 +283,17 @@ RentalOrderSchema.virtual('calculatedLateFee').get(function () {
 
 // Virtual field to get total amount including late fees
 RentalOrderSchema.virtual('totalAmountDue').get(function () {
-  return this.totalPrice + (this.lateFees || this.calculatedLateFee);
+  const now = new Date();
+  const isLate = this.status === 'delivered' && this.endDate < now;
+  let calculatedLateFee = 0;
+  
+  if (isLate) {
+    const daysLate = Math.ceil((now.getTime() - this.endDate.getTime()) / (1000 * 60 * 60 * 24));
+    const feePerDay = 100; // ₹100 per day late fee
+    calculatedLateFee = daysLate * feePerDay;
+  }
+  
+  return this.totalPrice + (this.lateFees || calculatedLateFee);
 });
 
 // Virtual field to get days until return

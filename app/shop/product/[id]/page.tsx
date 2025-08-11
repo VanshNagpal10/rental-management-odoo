@@ -8,7 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import CustomerLayout from '@/components/customer/CustomerLayout';
+
 import { 
   Heart, 
   ShoppingCart, 
@@ -141,6 +141,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       
       cart.push(cartItem);
       localStorage.setItem('cart', JSON.stringify(cart));
+      
+      // Dispatch custom event to update cart count in navbar
+      window.dispatchEvent(new Event('cartUpdated'));
+      
       toast.success('Added to cart');
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -159,7 +163,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         localStorage.setItem('wishlist', JSON.stringify(wishlist));
         toast.success('Added to wishlist');
       } else {
-        toast.info('Already in wishlist');
+        toast('Already in wishlist');
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error);
@@ -169,28 +173,24 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
   if (status === 'loading' || loading) {
     return (
-      <CustomerLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-800"></div>
-        </div>
-      </CustomerLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-800"></div>
+      </div>
     );
   }
 
   if (!product) {
     return (
-      <CustomerLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-gray-500 text-lg">Product not found</p>
-        </div>
-      </CustomerLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-500 text-lg">Product not found</p>
+      </div>
     );
   }
 
   const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=400&fit=crop';
 
   return (
-    <CustomerLayout title={product.name}>
+    <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
@@ -390,6 +390,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           </select>
         </div>
       </div>
-    </CustomerLayout>
+    </div>
   );
 }

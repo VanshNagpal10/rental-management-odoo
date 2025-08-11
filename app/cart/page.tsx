@@ -9,7 +9,6 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import CustomerLayout from '@/components/customer/CustomerLayout';
 import { 
   Plus, 
   Minus, 
@@ -64,6 +63,9 @@ export default function CartPage() {
   const updateCart = (newCart: CartItem[]) => {
     setCartItems(newCart);
     localStorage.setItem('cart', JSON.stringify(newCart));
+    
+    // Dispatch custom event to update cart count in navbar
+    window.dispatchEvent(new Event('cartUpdated'));
   };
 
   // Update quantity
@@ -72,7 +74,14 @@ export default function CartPage() {
     
     const updatedCart = [...cartItems];
     updatedCart[index].quantity = newQuantity;
-    updatedCart[index].totalPrice = updatedCart[index].pricePerUnit * newQuantity;
+    
+    // Recalculate total price based on available price information
+    if (updatedCart[index].pricePerUnit) {
+      updatedCart[index].totalPrice = updatedCart[index].pricePerUnit * newQuantity;
+    } else if (updatedCart[index].pricePerDay) {
+      updatedCart[index].totalPrice = updatedCart[index].pricePerDay * newQuantity;
+    }
+    
     updateCart(updatedCart);
   };
 
@@ -124,7 +133,10 @@ export default function CartPage() {
   };
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  const subtotal = cartItems.reduce((sum, item) => {
+    const itemPrice = item.totalPrice || (item.pricePerDay || 0) * (item.quantity || 1);
+    return sum + itemPrice;
+  }, 0);
   const discountAmount = (subtotal * discount) / 100;
   const deliveryCharge = 0; // Free delivery as shown in wireframe
   const tax = Math.round(subtotal * 0.01); // 1% tax
@@ -156,18 +168,16 @@ export default function CartPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <CustomerLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-800"></div>
-        </div>
-      </CustomerLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-800"></div>
+      </div>
     );
   }
 
   const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop';
 
   return (
-    <CustomerLayout title="Review Order">
+    <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
@@ -214,12 +224,13 @@ export default function CartPage() {
                           {item.name}
                         </h3>
                         <p className="text-primary-800 font-bold text-xl mb-2">
-                          ₹{item.totalPrice.toFixed(2)}
+                          ₹{item.totalPrice ? item.totalPrice.toFixed(2) : (item.pricePerDay || 0).toFixed(2)}
                         </p>
                         <div className="text-sm text-gray-600 space-y-1">
-                          <p>Duration: {item.duration}</p>
-                          <p>From: {item.fromDate} To: {item.toDate}</p>
-                          <p>Rate: ₹{item.pricePerUnit}/{item.duration}</p>
+                          {item.duration && <p>Duration: {item.duration}</p>}
+                          {item.fromDate && item.toDate && <p>From: {item.fromDate} To: {item.toDate}</p>}
+                          {item.pricePerUnit && item.duration && <p>Rate: ₹{item.pricePerUnit}/{item.duration}</p>}
+                          {!item.duration && <p>Price: ₹{item.pricePerDay || 0}/day</p>}
                         </div>
                       </div>
 
@@ -340,6 +351,6 @@ export default function CartPage() {
           </div>
         )}
       </div>
-    </CustomerLayout>
+    </div>
   );
 }

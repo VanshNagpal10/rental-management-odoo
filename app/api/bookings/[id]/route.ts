@@ -122,8 +122,8 @@ export async function PATCH(
 
     // Authorization checks based on update type
     if (status) {
-      // Only admins can update booking status
-      if (session.user.role !== 'admin') {
+      // Only endusers can update booking status
+      if (session.user.role !== 'enduser') {
         logger.warn('Unauthorized status update attempt', {
           user: session.user.email,
           bookingId: params.id,
@@ -132,7 +132,7 @@ export async function PATCH(
         
         const response: ApiResponse = {
           success: false,
-          error: 'Unauthorized. Only admins can update booking status.',
+          error: 'Unauthorized. Only endusers can update booking status.',
         };
         
         return NextResponse.json(response, { status: 403 });

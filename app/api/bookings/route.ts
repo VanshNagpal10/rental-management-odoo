@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import connectDB from '@/lib/mongodb';
 import Booking from '@/models/Booking';
+import RentalOrder from '@/models/RentalOrder';
 import Product from '@/models/Product';
 import { authOptions } from '@/lib/auth';
 import { logger } from '@/lib/logger';
@@ -44,8 +45,8 @@ export async function GET(request: NextRequest) {
       query.customerEmail = session.user.email;
     }
 
-    // If admin and customerEmail filter is provided
-    if (session.user.role === 'admin' && customerEmail) {
+    // If enduser and customerEmail filter is provided
+    if (session.user.role === 'enduser' && customerEmail) {
       query.customerEmail = customerEmail;
     }
 
@@ -176,8 +177,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Check availability for the requested dates
-    const isAvailable = await Booking.checkAvailability(productId, start, end);
-    if (!isAvailable) {
+    const conflictingOrders = await RentalOrder.find({
+      productId,
+      status: { $in: ['confirmed', 'reserved', 'delivered'] },
+      $or: [
+        {
+          startDate: { $lte: start },
+          endDate: { $gt: start },
+        },
+        {
+          startDate: { $lt: end },
+          endDate: { $gte: end },
+        },
+        {
+          startDate: { $gte: start },
+          endDate: { $lte: end },
+        },
+      ],
+    });
+
+    if (conflictingOrders.length > 0) {
       const response: ApiResponse = {
         success: false,
         error: 'Product is not available for the selected dates',
