@@ -15,7 +15,8 @@ declare global {
   }
 }
 
-import Razorpay from 'razorpay';
+// Note: Do not import the server-side Razorpay SDK on the client.
+// We load the checkout script and use window.Razorpay instead.
 
 import { 
   ChevronRight, 
@@ -278,7 +279,8 @@ export default function PaymentPage() {
       amount: order.amount,
       order_id: order.id,
       description: 'Thank you for your purchase',
-      handler: async function (response: any) {
+      notes: { bookingId: orderData.bookingId },
+      handler: async (response: any) => {
         const verifyRes = await fetch('/api/payments/verify', {
           method: 'POST',
           headers: {
@@ -293,10 +295,31 @@ export default function PaymentPage() {
         });
 
         const result = await verifyRes.json();
-        if (result.success) {
-          alert('Payment successful!');
+        if ((result.success ?? result.ok) === true) {
+          // Build invoice payload similar to card flow
+          const completeOrderData = {
+            orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
+            orderDate: new Date().toLocaleDateString(),
+            customerPhone: orderData.addresses?.delivery?.phone || '',
+            deliveryAddress: orderData.addresses?.delivery || {},
+            billingAddress: orderData.addresses?.billing || orderData.addresses?.delivery || {},
+            items: orderData.items || [],
+            pricing: orderData.pricing || {},
+            paymentMethod: 'Razorpay',
+            deliveryMethod: orderData.deliveryMethod || 'Standard Delivery',
+          };
+
+          try {
+            localStorage.setItem('orderData', JSON.stringify(completeOrderData));
+            localStorage.removeItem('cart');
+            localStorage.removeItem('checkoutData');
+            window.dispatchEvent(new Event('cartUpdated'));
+          } catch {}
+
+          toast.success('Payment successful!');
+          router.push('/orders/success');
         } else {
-          alert('Payment failed. Please try again.');
+          toast.error('Payment verification failed. Please try again.');
         }
       },
       prefill: {

@@ -40,7 +40,7 @@ A modern, full-stack rental management platform built with Next.js 14, MongoDB, 
 ### 1. Clone Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/sudhansu-24/rental-management-odoo.git
 cd rimo
 npm install
 ```
@@ -282,4 +282,4 @@ For support, email support@rimo.com or create an issue in the repository.
 
 ---
 
-**Built with ❤️ by the RIMO Team**
+**Built with ❤️ by the Team-70**

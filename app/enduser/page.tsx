@@ -38,9 +38,9 @@ export default function EndUserDashboard() {
       { category: 'Rental - Service', ordered: 25, revenue: 2940 }
     ],
     topProducts: [
-      { product: 'Wheelchairs', ordered: 10, revenue: 3032 },
-      { product: 'Tables', ordered: 5, revenue: 1009 },
-      { product: 'Chairs', ordered: 4, revenue: 3009 }
+      { product: 'Playstation 5', ordered: 10, revenue: 3032 },
+      { product: 'Canon EOS R6 Camera', ordered: 5, revenue: 1009 },
+      { product: 'Camping Tent (4 Person)', ordered: 4, revenue: 3009 }
     ],
     topCustomers: [
       { customer: 'Customer1', ordered: 10, revenue: 3032 },

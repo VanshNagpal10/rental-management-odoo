@@ -178,23 +178,51 @@ export default function DeliveryPage() {
         currency: order.currency,
         name: 'RIMO',
         order_id: order.id,
+        notes: { bookingId: checkoutData.bookingId },
         handler: async function (response: any) {
           // verify server-side
-          await axios.post('/api/payments/verify', {
+          const verifyRes = await axios.post('/api/payments/verify', {
             razorpay_order_id: response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_signature: response.razorpay_signature,
             bookingId: checkoutData.bookingId
           });
-          window.alert('Payment successful!');
-          window.location.reload();
+          if ((verifyRes.data?.success ?? verifyRes.data?.ok) === true) {
+            // Build order snapshot and redirect to invoice success
+            const completeOrderData = {
+              orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
+              orderDate: new Date().toLocaleDateString(),
+              customerPhone: deliveryAddress.phone || '',
+              deliveryAddress: deliveryAddress,
+              billingAddress: sameAsDelivery ? deliveryAddress : billingAddress,
+              items: checkoutData.items,
+              pricing: {
+                ...checkoutData.pricing,
+                deliveryCharge: selectedMethod?.price || 0,
+                total: checkoutData.pricing.subtotal - checkoutData.pricing.discount + (selectedMethod?.price || 0) + checkoutData.pricing.tax
+              },
+              paymentMethod: 'Razorpay',
+              deliveryMethod: selectedMethod,
+            } as any;
+
+            try {
+              localStorage.setItem('orderData', JSON.stringify(completeOrderData));
+              localStorage.removeItem('cart');
+              localStorage.removeItem('checkoutData');
+              window.dispatchEvent(new Event('cartUpdated'));
+            } catch {}
+            toast.success('Payment successful!');
+            router.push('/orders/success');
+          } else {
+            toast.error('Payment verification failed. Please try again.');
+          }
         }
       };
       // @ts-ignore
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
     } catch (err: any) {
-      alert(err.response?.data?.error || err.message);
+      toast.error(err.response?.data?.error || err.message);
     }
   };
 
