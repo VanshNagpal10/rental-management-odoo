@@ -210,7 +210,15 @@ export default function ShopPage() {
             {/* Action Buttons */}
             <div className={`${viewMode === 'list' ? 'flex items-center space-x-2' : 'mt-4 flex space-x-2'}`}>
               <button
-                onClick={() => addToCart(product)}
+                onClick={(e) => {
+                  // Prevent parent Link navigation when clicking Add to Cart inside card
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addToCart(product);
+                  // After adding one unit from the catalog, navigate to Review Order
+                  try { window.dispatchEvent(new Event('cartUpdated')); } catch {}
+                  location.assign('/cart');
+                }}
                 className="flex-1 bg-primary-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <ShoppingCart className="h-4 w-4" />

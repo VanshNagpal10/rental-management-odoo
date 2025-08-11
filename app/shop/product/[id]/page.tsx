@@ -143,9 +143,11 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       localStorage.setItem('cart', JSON.stringify(cart));
       
       // Dispatch custom event to update cart count in navbar
-      window.dispatchEvent(new Event('cartUpdated'));
+      try { window.dispatchEvent(new Event('cartUpdated')); } catch {}
       
       toast.success('Added to cart');
+      // Navigate to Review Order page so user can continue to Delivery/Payment
+      router.push('/cart');
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add to cart');
@@ -324,10 +326,14 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 </button>
                 
                 <button
-                  onClick={addToCart}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    addToCart();
+                  }}
                   className="flex-1 bg-primary-800 text-white py-2 px-6 rounded-md font-medium hover:bg-primary-700 transition-colors flex items-center justify-center space-x-2"
                 >
-                  <Heart className="h-4 w-4" />
+                  <ShoppingCart className="h-4 w-4" />
                   <span>Add to Cart</span>
                 </button>
               </div>

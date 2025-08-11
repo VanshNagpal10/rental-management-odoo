@@ -43,7 +43,12 @@ export default function Navbar() {
     const updateCartCount = () => {
       try {
         const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        const totalItems = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+        // Defensive: ensure array and numeric quantities; if empty, count becomes 0
+        const itemsArray: any[] = Array.isArray(cart) ? cart : [];
+        const totalItems = itemsArray.reduce((sum: number, item: any) => {
+          const qty = Number(item?.quantity);
+          return sum + (Number.isFinite(qty) && qty > 0 ? qty : 0);
+        }, 0);
         setCartCount(totalItems);
       } catch (error) {
         setCartCount(0);
@@ -59,11 +64,30 @@ export default function Navbar() {
     // Listen for custom cart update events
     window.addEventListener('cartUpdated', updateCartCount);
 
+    // Also recalc when tab becomes active again
+    window.addEventListener('focus', updateCartCount);
+
     return () => {
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cartUpdated', updateCartCount);
+      window.removeEventListener('focus', updateCartCount);
     };
   }, []);
+
+  // Recalculate on route change as an additional safeguard
+  useEffect(() => {
+    try {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const itemsArray: any[] = Array.isArray(cart) ? cart : [];
+      const totalItems = itemsArray.reduce((sum: number, item: any) => {
+        const qty = Number(item?.quantity);
+        return sum + (Number.isFinite(qty) && qty > 0 ? qty : 0);
+      }, 0);
+      setCartCount(totalItems);
+    } catch {
+      setCartCount(0);
+    }
+  }, [pathname]);
 
   // Navigation items based on user role
   const getNavigationItems = () => {

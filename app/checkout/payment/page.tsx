@@ -222,6 +222,12 @@ export default function PaymentPage() {
       // Clear cart and checkout data
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutData');
+      // Broadcast cart update so Navbar badge refreshes immediately in this tab
+      try {
+        window.dispatchEvent(new Event('cartUpdated'));
+      } catch (_) {
+        // no-op
+      }
       
       toast.success('Payment successful! Order confirmed');
       router.push('/orders/success');
