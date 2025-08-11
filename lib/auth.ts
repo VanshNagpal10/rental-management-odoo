@@ -12,6 +12,7 @@ import { logger } from '@/lib/logger';
 // NextAuth configuration
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || 'development-secret-key-change-in-production',
+  url: process.env.NEXTAUTH_URL || 'http://localhost:3000',
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -28,40 +29,59 @@ export const authOptions: NextAuthOptions = {
         },
       },
       async authorize(credentials) {
+        console.log('NextAuth authorize called');
+        console.log('Environment check in auth:', {
+          MONGODB_URI: process.env.MONGODB_URI ? 'SET' : 'NOT SET',
+          NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'NOT SET',
+          NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'NOT SET'
+        });
+
         if (!credentials?.email || !credentials?.password) {
+          console.log('Missing credentials in login attempt');
           logger.auth('Missing credentials in login attempt');
           return null;
         }
 
         try {
           // Connect to database
+          console.log('Connecting to MongoDB for auth...');
           await connectDB();
+          console.log('MongoDB connected for auth');
 
           // Find user by email
+          console.log('Looking for user with email:', credentials.email);
           const user = await User.findOne({ email: credentials.email });
           if (!user) {
+            console.log('User not found:', credentials.email);
             logger.auth('User not found', credentials.email);
             return null;
           }
+          console.log('User found:', user._id);
 
           // Verify password
+          console.log('Verifying password...');
           const isValidPassword = await user.comparePassword(credentials.password);
           if (!isValidPassword) {
+            console.log('Invalid password for:', credentials.email);
             logger.auth('Invalid password attempt', credentials.email);
             return null;
           }
+          console.log('Password valid for:', credentials.email);
 
           // Log successful authentication
           logger.auth('Successful login', user.email, { role: user.role });
 
           // Return user object for session
-          return {
+          const userObj = {
             id: user._id.toString(),
             email: user.email,
             name: user.name,
             role: user.role,
           };
+          console.log('Returning user object:', userObj);
+          return userObj;
         } catch (error) {
+          console.error('Authentication error:', error);
           logger.error('Authentication error', { 
             error: error instanceof Error ? error.message : 'Unknown error',
             email: credentials.email 
