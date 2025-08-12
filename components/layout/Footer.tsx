@@ -84,7 +84,7 @@ export default function Footer() {
                   href="mailto:support@rentalmanager.com" 
                   className="hover:text-white transition-colors"
                 >
-                  support@rentalmanager.com
+                  support@rimo.com
                 </a>
               </div>
               
@@ -211,7 +211,7 @@ export default function Footer() {
             {/* Copyright */}
             <div className="text-center md:text-left">
               <p className="text-sm text-gray-400">
-                © {currentYear} RentalManager. All rights reserved.
+                © {currentYear} RIMO. All rights reserved.
               </p>
             </div>
 
@@ -236,7 +236,7 @@ export default function Footer() {
             <p className="text-sm text-gray-500 flex items-center justify-center">
               Made with 
               <Heart className="w-4 h-4 text-red-500 mx-1 fill-current" />
-              by the RentalManager Team
+              by the RIMO Team
             </p>
           </div>
         </div>

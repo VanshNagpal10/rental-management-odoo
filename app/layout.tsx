@@ -20,14 +20,14 @@ const inter = Inter({ subsets: ['latin'] });
 // Application metadata for SEO and social sharing
 export const metadata: Metadata = {
   title: {
-    default: 'RentalManager - Smart Rental Management System',
-    template: '%s | RentalManager'
+    default: 'RIMO - Smart Rental Management System',
+    template: '%s | RIMO'
   },
   description: 'Modern rental management platform for easy product rentals, booking management, and customer service. Perfect for equipment, tool, and event rental businesses.',
   keywords: ['rental management', 'equipment rental', 'booking system', 'rental platform', 'tool rental'],
-  authors: [{ name: 'RentalManager Team' }],
-  creator: 'RentalManager',
-  publisher: 'RentalManager',
+  authors: [{ name: 'RIMO Team' }],
+  creator: 'RIMO',
+  publisher: 'RIMO',
   formatDetection: {
     email: false,
     address: false,
@@ -37,21 +37,21 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    siteName: 'RentalManager',
-    title: 'RentalManager - Smart Rental Management System',
+    siteName: 'RIMO',
+    title: 'RIMO - Smart Rental Management System',
     description: 'Modern rental management platform for easy product rentals and booking management.',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'RentalManager - Smart Rental Management System',
+        alt: 'RIMO - Smart Rental Management System',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'RentalManager - Smart Rental Management System',
+    title: 'RIMO - Smart Rental Management System',
     description: 'Modern rental management platform for easy product rentals and booking management.',
     images: ['/og-image.jpg'],
   },
