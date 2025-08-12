@@ -13,7 +13,11 @@ export async function GET(req: NextRequest) {
     console.log('Environment:', {
       NODE_ENV: process.env.NODE_ENV,
       MONGODB_URI: process.env.MONGODB_URI ? 'SET' : 'NOT SET',
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'NOT SET'
+      MONGODB_URI_FIRST_CHARS: process.env.MONGODB_URI ? process.env.MONGODB_URI.substring(0, 20) + '...' : 'NOT SET',
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'NOT SET',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'SET' : 'NOT SET',
+      VERCEL: process.env.VERCEL ? 'SET' : 'NOT SET',
+      ALL_ENV_KEYS: Object.keys(process.env).filter(key => key.includes('MONGO') || key.includes('NEXTAUTH')).join(', ')
     });
 
     // Test MongoDB connection
@@ -31,7 +35,15 @@ export async function GET(req: NextRequest) {
         environment: process.env.NODE_ENV,
         mongodbConnected: true,
         userCount,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        envVars: {
+          MONGODB_URI: process.env.MONGODB_URI ? 'SET' : 'NOT SET',
+          MONGODB_URI_FIRST_CHARS: process.env.MONGODB_URI ? process.env.MONGODB_URI.substring(0, 20) + '...' : 'NOT SET',
+          NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'NOT SET',
+          NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'SET' : 'NOT SET',
+          VERCEL: process.env.VERCEL ? 'SET' : 'NOT SET',
+          ALL_MONGO_NEXTAUTH_KEYS: Object.keys(process.env).filter(key => key.includes('MONGO') || key.includes('NEXTAUTH')).join(', ')
+        }
       }
     });
   } catch (error) {
