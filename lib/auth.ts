@@ -28,25 +28,36 @@ export const authOptions: NextAuthOptions = {
         },
       },
       async authorize(credentials) {
+        console.log('Auth attempt for:', credentials?.email);
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log('Missing credentials');
           logger.auth('Missing credentials in login attempt');
           return null;
         }
 
         try {
           // Connect to database
+          console.log('Connecting to database...');
           await connectDB();
+          console.log('Database connected');
 
           // Find user by email
+          console.log('Looking for user:', credentials.email);
           const user = await User.findOne({ email: credentials.email });
           if (!user) {
+            console.log('User not found in database');
             logger.auth('User not found', credentials.email);
             return null;
           }
+          console.log('User found:', user._id);
 
           // Verify password
+          console.log('Verifying password...');
           const isValidPassword = await user.comparePassword(credentials.password);
+          console.log('Password valid:', isValidPassword);
           if (!isValidPassword) {
+            console.log('Password verification failed');
             logger.auth('Invalid password attempt', credentials.email);
             return null;
           }
