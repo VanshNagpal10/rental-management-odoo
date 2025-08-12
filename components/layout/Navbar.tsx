@@ -147,7 +147,7 @@ export default function Navbar() {
               className="flex items-center px-2 py-2 text-xl font-bold text-primary-600 hover:text-primary-700 transition-colors"
             >
               <Package className="w-8 h-8 mr-2" />
-              RentalManager
+              RIMO
             </Link>
 
             {/* Desktop navigation */}
