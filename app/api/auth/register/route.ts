@@ -15,22 +15,9 @@ import { ApiResponse } from '@/types';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Debug logging for Vercel
-    console.log('Registration API called');
-    console.log('Environment check:', {
-      NODE_ENV: process.env.NODE_ENV,
-      MONGODB_URI: process.env.MONGODB_URI ? 'SET' : 'NOT SET',
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'NOT SET'
-    });
-
     await connectDB();
-    console.log('MongoDB connected successfully');
 
     const body = await request.json();
-    console.log('Request body received:', {
-      ...body,
-      password: body.password ? '[REDACTED]' : 'NOT PROVIDED'
-    });
 
     const {
       name,
@@ -76,10 +63,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    console.log('Checking for existing user with email:', email);
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log('User already exists:', existingUser._id);
       logger.warn('Registration attempt with existing email', { email });
       
       const response: ApiResponse = {
@@ -89,7 +74,6 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json(response, { status: 409 });
     }
-    console.log('No existing user found, proceeding with registration');
 
     // Create new user
     const userData: any = {
@@ -109,16 +93,8 @@ export async function POST(request: NextRequest) {
       userData.businessType = businessType;
     }
 
-    console.log('Creating user with data:', {
-      ...userData,
-      password: userData.password ? '[REDACTED]' : 'NOT PROVIDED'
-    });
-
     const user = new User(userData);
-    console.log('User instance created, attempting to save...');
-    
     await user.save();
-    console.log('User saved successfully:', user._id);
 
     logger.auth('User registered successfully', user.email, { 
       role: user.role,
@@ -143,15 +119,12 @@ export async function POST(request: NextRequest) {
       message: 'User registered successfully',
     };
 
-    console.log('Registration successful, returning response');
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
-    console.error('Registration error caught:', error);
     logger.error('Error registering user', { error });
     
     // Handle validation errors
     if (error instanceof Error && error.name === 'ValidationError') {
-      console.log('Validation error details:', error.message);
       const response: ApiResponse = {
         success: false,
         error: error.message,

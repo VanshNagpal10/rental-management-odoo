@@ -184,11 +184,6 @@ export default function RegisterPage() {
 
       logger.auth('Registration attempt', formData.email, { role: selectedRole });
 
-      console.log('Sending registration request:', {
-        ...registrationData,
-        password: '[REDACTED]'
-      });
-
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -197,11 +192,7 @@ export default function RegisterPage() {
         body: JSON.stringify(registrationData),
       });
 
-      console.log('Registration response status:', response.status);
-      console.log('Registration response ok:', response.ok);
-
       const result = await response.json();
-      console.log('Registration response body:', result);
 
       if (response.ok) {
         toast.success('Your account has been created. Please sign in.');
