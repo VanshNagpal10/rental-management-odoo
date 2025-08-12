@@ -19,7 +19,9 @@ declare global {
 }
 
 // MongoDB URI from environment variables with fallback for development
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/rimo';
+// Temporary hardcoded fix for Vercel environment variable issues
+const MONGODB_URI = process.env.MONGODB_URI || 
+  (process.env.VERCEL ? 'mongodb+srv://ssprusty98:odoo1125@rimo.lyyfqyu.mongodb.net/rimo?retryWrites=true&w=majority' : 'mongodb://127.0.0.1:27017/rimo');
 
 if (!MONGODB_URI || MONGODB_URI === 'mongodb://127.0.0.1:27017/rimo') {
   logger.warn('Using default MongoDB URI for development. Please set MONGODB_URI in .env.local for production.');

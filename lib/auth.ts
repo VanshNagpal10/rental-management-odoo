@@ -11,8 +11,8 @@ import { logger } from '@/lib/logger';
 
 // NextAuth configuration
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET || 'development-secret-key-change-in-production',
-  url: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+  secret: process.env.NEXTAUTH_SECRET || (process.env.VERCEL ? '815d95f7bf5b3f007ce796797726c9ee888a12f8c90eb875d6b4e5de105abae0' : 'development-secret-key-change-in-production'),
+  url: process.env.NEXTAUTH_URL || (process.env.VERCEL ? 'https://rental-management-odoo.vercel.app' : 'http://localhost:3000'),
   providers: [
     CredentialsProvider({
       name: 'credentials',
